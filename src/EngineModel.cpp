@@ -48,8 +48,13 @@ namespace cgf
     }
 
     void EngineModel::Draw(VkCommandBuffer commandBuffer)
-    {
-        vkCmdDraw(commandBuffer, vertexCount, 1, 0, 0);
+    {   
+        vkCmdDraw(
+                commandBuffer, 
+                vertexCount,    // vertex count
+                1,              // instance count
+                0,              // first vertex 
+                0);            // first instance
     }
 
     std::vector<VkVertexInputBindingDescription> EngineModel::Vertex::getBindingDescriptions()

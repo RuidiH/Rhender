@@ -20,7 +20,8 @@ namespace cgf {
             exit(1);
         }
 
-        mWindow = SDL_CreateWindow(mWindowName.c_str(), SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, mWidth, mHeight, SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_VULKAN);
+        // mWindow = SDL_CreateWindow(mWindowName.c_str(), SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, mWidth, mHeight, SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_VULKAN);
+        mWindow = SDL_CreateWindow(mWindowName.c_str(), SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, mWidth, mHeight, SDL_WINDOW_SHOWN | SDL_WINDOW_VULKAN);
         if (mWindow == nullptr) {
             std::cerr << "Failed to create window!" << std::endl;
             exit(1);
