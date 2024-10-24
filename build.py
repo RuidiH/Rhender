@@ -6,7 +6,8 @@ import platform
 COMPILER="g++ -std=c++17"   # The compiler we want to use 
                                 #(You may try g++ if you have trouble)
 SOURCE="./src/*.cpp"    # Where the source code lives
-EXECUTABLE="proj"        # Name of the final executable
+EXECUTABLE="proj"       # Name of the final executable
+GLSLC = "glslc"         # Shader compiler
 # ======================= COMMON CONFIGURATION OPTIONS ======================= #
 
 # (2)=================== Platform specific configuration ===================== #
@@ -28,6 +29,7 @@ elif platform.system()=="Darwin":
     INCLUDE_DIR="-I ./include/ -I/Library/Frameworks/SDL2.framework/Headers -I./../common/thirdparty/old/glm "
     LIBRARIES="-F/Library/Frameworks -framework SDL2"
 elif platform.system()=="Windows":
+    GLSLC = "C:\VulkanSDK\1.3.275.0\Bin\glslc.exe"
     COMPILER="g++ -std=c++17" # Note we use g++ here as it is more likely what you have
     ARGUMENTS="-D MINGW -std=c++17 -static-libgcc -static-libstdc++" 
     INCLUDE_DIR="-I./include/ -I./../common/thirdparty/old/glm/ -IC:/VulkanSDK/1.3.275.0/Include -LC:/VulkanSDK/1.3.275.0/Lib"
@@ -59,3 +61,30 @@ os.system(compileString)
 #       script
 # 4.)   It is handy to know Python
 
+# (4)====================== Compiling Shaders =================================#
+# Define shader source and output directories
+shader_dir = "shaders"
+shader_files = ["main_shader.vert", "main_shader.frag"]
+
+for shader in shader_files:
+    shader_source = os.path.join(shader_dir, shader)
+    shader_output = os.path.join(shader_dir, shader + ".spv")
+    # Build the shader compile command
+    shader_compile_cmd = f"{GLSLC} {shader_source} -o {shader_output}"
+    print(f"Compiling shader: {shader_source}")
+    print(shader_compile_cmd)
+    # Run the shader compile command
+    result = os.system(shader_compile_cmd)
+    if result != 0:
+        print(f"Failed to compile shader: {shader_source}")
+        exit(1)
+# ========================= Compiling Shaders =================================#
+
+# (5)====================== Running the Executable =========================== #
+# Optionally, you can run the executable automatically
+print("Running the executable...")
+if platform.system() == "Windows":
+    os.system(EXECUTABLE)
+else:
+    os.system(f"./{EXECUTABLE}")
+# ========================= Running the Executable =========================== #
