@@ -17,8 +17,12 @@ LIBRARIES=""            # What libraries do we want to include
 
 if platform.system()=="Linux":
     ARGUMENTS="-D LINUX" # -D is a #define sent to preprocessor
-    INCLUDE_DIR="-I ./include/ -I ./../common/thirdparty/glm/"
-    LIBRARIES="-lSDL2 -ldl"
+    INCLUDE_DIR=(
+        "-I ./include/ "
+        "-I ./../common/thirdparty/glm/"
+        "-I$VULKAN_SDK/include"     
+    )
+    LIBRARIES="-lSDL2 -lvulkan"
 elif platform.system()=="Darwin":
     ARGUMENTS="-D MAC" # -D is a #define sent to the preprocessor.
     INCLUDE_DIR="-I ./include/ -I/Library/Frameworks/SDL2.framework/Headers -I./../common/thirdparty/old/glm "
