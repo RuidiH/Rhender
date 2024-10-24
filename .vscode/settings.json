@@ -59,7 +59,6 @@
   "files.associations": {
     "array": "cpp",
     "string": "cpp",
-    "string_view": "cpp",
-    "stdexcept": "cpp"
+    "string_view": "cpp"
   }
 }
