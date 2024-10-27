@@ -9,7 +9,8 @@ namespace cgf
     {
         LoadModels();
         CreatePipelineLayout();
-        CreatePipeline();
+        // CreatePipeline();
+        recreateSwapChain();
         CreateCommandBuffers();
     }
 
@@ -26,11 +27,10 @@ namespace cgf
 
     void Engine::LoadModels()
     {
-        std::vector<EngineModel::Vertex> vertices {
+        std::vector<EngineModel::Vertex> vertices{
             {{0.0f, -0.5f}, {1.0f, 0.0f, 0.0f}},
             {{0.5f, 0.5f}, {0.0f, 1.0f, 0.0f}},
-            {{-0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}}
-        };
+            {{-0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}}};
 
         mEngineModel = std::make_unique<EngineModel>(mEngineDevice, vertices);
     }
@@ -53,8 +53,8 @@ namespace cgf
 
     void Engine::CreatePipeline()
     {
-        auto pipelineConfig = EnginePipeline::DefaultPipelineConfigInfo(mEngineSwapChain.width(), mEngineSwapChain.height());
-        pipelineConfig.renderPass = mEngineSwapChain.getRenderPass();
+        auto pipelineConfig = EnginePipeline::DefaultPipelineConfigInfo(mEngineSwapChain->width(), mEngineSwapChain->height());
+        pipelineConfig.renderPass = mEngineSwapChain->getRenderPass();
         pipelineConfig.pipelineLayout = mPipelineLayout;
         mEnginePipeline = std::make_unique<EnginePipeline>(
             mEngineDevice,
@@ -63,9 +63,23 @@ namespace cgf
             pipelineConfig);
     }
 
+    void Engine::recreateSwapChain() {
+        auto extent = mWindow.GetExtent();
+        SDL_Event event;
+        while (extent.width == 0 || extent.height == 0) {
+            extent = mWindow.GetExtent(); 
+            SDL_WaitEvent(&event);
+        }
+
+        vkDeviceWaitIdle(mEngineDevice.device());
+        mEngineSwapChain = nullptr;
+        mEngineSwapChain = std::make_unique<EngineSwapChain>(mEngineDevice, extent);
+        CreatePipeline();
+    }
+
     void Engine::CreateCommandBuffers()
     {
-        mCommandBuffers.resize(mEngineSwapChain.imageCount());
+        mCommandBuffers.resize(mEngineSwapChain->imageCount());
         VkCommandBufferAllocateInfo allocInfo{};
         allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
         allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
@@ -76,55 +90,69 @@ namespace cgf
         {
             throw std::runtime_error("failed to allocate command buffers!");
         }
+    }
 
-        for (int i = 0; i < mCommandBuffers.size(); i++)
+    void Engine::recordCommandBuffer(int imageIndex)
+    {
+        VkCommandBufferBeginInfo beginInfo{};
+        beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+
+        if (vkBeginCommandBuffer(mCommandBuffers[imageIndex], &beginInfo) != VK_SUCCESS)
         {
-            VkCommandBufferBeginInfo beginInfo{};
-            beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+            throw std::runtime_error("failed to begin recording command buffer!");
+        }
+        VkRenderPassBeginInfo renderPassInfo{};
+        renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+        renderPassInfo.renderPass = mEngineSwapChain->getRenderPass();
+        renderPassInfo.framebuffer = mEngineSwapChain->getFrameBuffer(imageIndex);
+        renderPassInfo.renderArea.offset = {0, 0};
+        renderPassInfo.renderArea.extent = mEngineSwapChain->getSwapChainExtent();
 
-            if (vkBeginCommandBuffer(mCommandBuffers[i], &beginInfo) != VK_SUCCESS)
-            {
-                throw std::runtime_error("failed to begin recording command buffer!");
-            }
-            VkRenderPassBeginInfo renderPassInfo{};
-            renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-            renderPassInfo.renderPass = mEngineSwapChain.getRenderPass();
-            renderPassInfo.framebuffer = mEngineSwapChain.getFrameBuffer(i);
-            renderPassInfo.renderArea.offset = {0, 0};
-            renderPassInfo.renderArea.extent = mEngineSwapChain.getSwapChainExtent();
+        std::array<VkClearValue, 2> clearValues{};
+        clearValues[0].color = {0.1f, 0.1f, 0.1f, 1.0f};
+        clearValues[1].depthStencil = {1.0f, 0};
+        renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
+        renderPassInfo.pClearValues = clearValues.data();
 
-            std::array<VkClearValue, 2> clearValues{};
-            clearValues[0].color = {0.1f, 0.1f, 0.1f, 1.0f};
-            clearValues[1].depthStencil = {1.0f, 0};
-            renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
-            renderPassInfo.pClearValues = clearValues.data();
+        vkCmdBeginRenderPass(mCommandBuffers[imageIndex], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
-            vkCmdBeginRenderPass(mCommandBuffers[i], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+        mEnginePipeline->Bind(mCommandBuffers[imageIndex]);
+        mEngineModel->Bind(mCommandBuffers[imageIndex]);
+        mEngineModel->Draw(mCommandBuffers[imageIndex]);
 
-            mEnginePipeline->Bind(mCommandBuffers[i]);
-            // vkCmdDraw(mCommandBuffers[i], 3, 1, 0, 0);
-            mEngineModel->Bind(mCommandBuffers[i]);
-            mEngineModel->Draw(mCommandBuffers[i]);
-
-            vkCmdEndRenderPass(mCommandBuffers[i]);
-            if (vkEndCommandBuffer(mCommandBuffers[i]) != VK_SUCCESS)
-            {
-                throw std::runtime_error("failed to record command buffer!");
-            }
+        vkCmdEndRenderPass(mCommandBuffers[imageIndex]);
+        if (vkEndCommandBuffer(mCommandBuffers[imageIndex]) != VK_SUCCESS)
+        {
+            throw std::runtime_error("failed to record command buffer!");
         }
     }
-    void Engine::DrawFrame() {
+
+    void Engine::DrawFrame()
+    {
         uint32_t imageIndex;
-        auto result = mEngineSwapChain.acquireNextImage(&imageIndex);
-        if (result != VK_SUCCESS) {
+        auto result = mEngineSwapChain->acquireNextImage(&imageIndex);
+
+        if (result == VK_ERROR_OUT_OF_DATE_KHR) {
+            recreateSwapChain();
+            return;
+        }
+        if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR)
+        {
             throw std::runtime_error("failed to acquire next image!");
         }
 
-        result = mEngineSwapChain.submitCommandBuffers(&mCommandBuffers[imageIndex], &imageIndex);
-        if (result != VK_SUCCESS) {
-            throw std::runtime_error("failed to submit command buffer!");
+        recordCommandBuffer(imageIndex);
+        result = mEngineSwapChain->submitCommandBuffers(&mCommandBuffers[imageIndex], &imageIndex);
+        if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || mWindow.wasWindowResized()) {
+            mWindow.resetWindowResizedFlag();
+            recreateSwapChain();
+            return;
         }
 
+        if (result != VK_SUCCESS)
+        {
+            throw std::runtime_error("failed to submit command buffer!");
+        }
     }
 
     void Engine::Render()
@@ -151,6 +179,16 @@ namespace cgf
             if (e.type == SDL_QUIT || (e.type == SDL_KEYDOWN && e.key.keysym.sym == SDLK_ESCAPE))
             {
                 mIsRunning = false;
+            }
+
+            if (e.type == SDL_WINDOWEVENT)
+            {
+                switch (e.window.event)
+                {
+                case SDL_WINDOWEVENT_RESIZED:
+                    mWindow.framebufferResizeCallback();
+                    break;
+                }
             }
         }
     }

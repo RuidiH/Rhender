@@ -21,11 +21,16 @@ namespace cgf {
             EngineWindow &operator=(const EngineWindow &) = delete;
 
             VkExtent2D GetExtent() { return {static_cast<uint32_t>(mWidth), static_cast<uint32_t>(mHeight)}; }
+
+            bool wasWindowResized() { return framebufferResized; }
+            void resetWindowResizedFlag() { framebufferResized = false; }
+            void framebufferResizeCallback();
         private:
             void InitWindow();
 
-            const int mWidth;
-            const int mHeight;
+            int mWidth;
+            int mHeight;
+            bool framebufferResized = false;
             std::string mWindowName;
             SDL_Window *mWindow; 
     };

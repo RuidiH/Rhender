@@ -37,7 +37,8 @@ namespace cgf
         ~EnginePipeline();
 
         EnginePipeline(const EnginePipeline &) = delete;
-        void operator=(const EnginePipeline &) = delete;
+        EnginePipeline& operator=(const EnginePipeline &) = delete;
+        EnginePipeline() = default;
 
         void Bind(VkCommandBuffer commandBuffer);
 

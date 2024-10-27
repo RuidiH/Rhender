@@ -37,10 +37,12 @@ namespace cgf
         void CreatePipeline();
         void CreateCommandBuffers();
         void DrawFrame();
+        void recreateSwapChain();
+        void recordCommandBuffer(int imageIndex);
 
         EngineWindow mWindow{WIDTH, HEIGHT, "Vulkan Engine"};
         EngineDevice mEngineDevice{mWindow};
-        EngineSwapChain mEngineSwapChain{mEngineDevice, mWindow.GetExtent()};
+        std::unique_ptr<EngineSwapChain> mEngineSwapChain;
         std::unique_ptr<EnginePipeline> mEnginePipeline;
         VkPipelineLayout mPipelineLayout;
         std::vector<VkCommandBuffer> mCommandBuffers;
