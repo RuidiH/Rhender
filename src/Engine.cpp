@@ -27,9 +27,9 @@ namespace cgf
     void Engine::LoadModels()
     {
         std::vector<EngineModel::Vertex> vertices {
-            {{0.0f, -0.5f}},
-            {{0.5f, 0.5f}},
-            {{-0.5f, 0.5f}}
+            {{0.0f, -0.5f}, {1.0f, 0.0f, 0.0f}},
+            {{0.5f, 0.5f}, {0.0f, 1.0f, 0.0f}},
+            {{-0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}}
         };
 
         mEngineModel = std::make_unique<EngineModel>(mEngineDevice, vertices);
