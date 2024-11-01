@@ -144,7 +144,7 @@ namespace cgf
     {
         uint32_t imageIndex;
         auto result = mEngineSwapChain->acquireNextImage(&imageIndex);
-        std::cout << "imageIndex: " << imageIndex << std::endl;
+        // std::cout << "imageIndex: " << imageIndex << std::endl;
         if (result == VK_ERROR_OUT_OF_DATE_KHR)
         {
             recreateSwapChain();
