@@ -44,6 +44,7 @@ namespace cgf
 
         // push constants
         pipelineLayoutInfo.pushConstantRangeCount = 0;
+        pipelineLayoutInfo.pPushConstantRanges = nullptr;
 
         if (vkCreatePipelineLayout(mEngineDevice.device(), &pipelineLayoutInfo, nullptr, &mPipelineLayout) != VK_SUCCESS)
         {
@@ -63,17 +64,29 @@ namespace cgf
             pipelineConfig);
     }
 
-    void Engine::recreateSwapChain() {
+    void Engine::recreateSwapChain()
+    {
         auto extent = mWindow.GetExtent();
         SDL_Event event;
-        while (extent.width == 0 || extent.height == 0) {
-            extent = mWindow.GetExtent(); 
-            SDL_WaitEvent(&event);
+        while (extent.width == 0 || extent.height == 0)
+        {
+            extent = mWindow.GetExtent();
+            SDL_WaitEvent(nullptr);
         }
 
         vkDeviceWaitIdle(mEngineDevice.device());
-        mEngineSwapChain = nullptr;
-        mEngineSwapChain = std::make_unique<EngineSwapChain>(mEngineDevice, extent);
+        if (mEngineSwapChain == nullptr)
+        {
+            mEngineSwapChain = std::make_unique<EngineSwapChain>(mEngineDevice, extent);
+        }
+        else
+        {
+            std::shared_ptr<EngineSwapChain> oldSwapChain = std::move(mEngineSwapChain);
+            mEngineSwapChain = std::make_unique<EngineSwapChain>(mEngineDevice, extent, oldSwapChain);
+            assert(
+                mEngineSwapChain->imageCount() == oldSwapChain->imageCount() && "Swap chain image count has changed!");
+        }
+
         CreatePipeline();
     }
 
@@ -131,8 +144,9 @@ namespace cgf
     {
         uint32_t imageIndex;
         auto result = mEngineSwapChain->acquireNextImage(&imageIndex);
-
-        if (result == VK_ERROR_OUT_OF_DATE_KHR) {
+        std::cout << "imageIndex: " << imageIndex << std::endl;
+        if (result == VK_ERROR_OUT_OF_DATE_KHR)
+        {
             recreateSwapChain();
             return;
         }
@@ -143,7 +157,8 @@ namespace cgf
 
         recordCommandBuffer(imageIndex);
         result = mEngineSwapChain->submitCommandBuffers(&mCommandBuffers[imageIndex], &imageIndex);
-        if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || mWindow.wasWindowResized()) {
+        if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || mWindow.wasWindowResized())
+        {
             mWindow.resetWindowResizedFlag();
             recreateSwapChain();
             return;
@@ -167,6 +182,7 @@ namespace cgf
             Input();
             // Update();
             Render();
+            vkDeviceWaitIdle(mEngineDevice.device());
         }
         vkDeviceWaitIdle(mEngineDevice.device());
     }

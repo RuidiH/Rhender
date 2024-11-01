@@ -82,9 +82,9 @@ for shader in shader_files:
 
 # (5)====================== Running the Executable =========================== #
 # Optionally, you can run the executable automatically
-print("Running the executable...")
-if platform.system() == "Windows":
-    os.system(EXECUTABLE)
-else:
-    os.system(f"./{EXECUTABLE}")
+# print("Running the executable...")
+# if platform.system() == "Windows":
+#     os.system(EXECUTABLE)
+# else:
+#     os.system(f"./{EXECUTABLE}")
 # ========================= Running the Executable =========================== #
